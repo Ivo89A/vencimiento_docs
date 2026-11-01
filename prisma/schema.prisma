@@ -1,0 +1,347 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  active        Boolean  @default(true)
+  allEntities   Boolean  @default(false)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  sessions      Session[]
+  accounts      Account[]
+  roles         UserRole[]
+  access        UserLegalEntityAccess[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime @db.Timestamptz(3)
+  token     String   @unique
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(3)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @db.Timestamptz(3)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rate_limits")
+}
+
+model Role {
+  id          String @id @default(uuid()) @db.Uuid
+  name        String @unique
+  description String
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  code  String @id
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId String
+  roleId String @db.Uuid
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId         String @db.Uuid
+  permissionCode String
+  role           Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission     Permission @relation(fields: [permissionCode], references: [code], onDelete: Restrict)
+
+  @@id([roleId, permissionCode])
+  @@index([permissionCode])
+  @@map("role_permissions")
+}
+
+model UserLegalEntityAccess {
+  userId        String
+  legalEntityId String @db.Uuid
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  legalEntity   LegalEntity @relation(fields: [legalEntityId], references: [id], onDelete: Restrict)
+
+  @@id([userId, legalEntityId])
+  @@index([legalEntityId])
+  @@map("user_legal_entity_access")
+}
+
+model LegalEntity {
+  id            String   @id @default(uuid()) @db.Uuid
+  legalName     String
+  tradeName     String
+  cuit          String   @unique @db.VarChar(11)
+  address       String
+  province      String
+  locality      String
+  email         String
+  phone         String
+  responsible   String
+  active        Boolean  @default(true)
+  version       Int      @default(1)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  stations      ServiceStation[]
+  stores        Store[]
+  documentableEntities DocumentableEntity[] @relation("DocumentScope")
+  documentableSelf DocumentableEntity? @relation("DocumentCompany")
+  vehicles      Vehicle[]
+  access        UserLegalEntityAccess[]
+
+  @@index([active, legalName, id])
+  @@map("legal_entities")
+}
+
+enum StationOperationalStatus {
+  OPERATIONAL
+  PAUSED
+  CLOSED
+}
+
+model ServiceStation {
+  id            String   @id @default(uuid()) @db.Uuid
+  legalEntityId String   @db.Uuid
+  name          String
+  code          String
+  operationalStatus StationOperationalStatus @default(OPERATIONAL)
+  address       String
+  province      String
+  locality      String
+  responsible   String
+  phone         String
+  email         String
+  active        Boolean  @default(true)
+  version       Int      @default(1)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  legalEntity   LegalEntity @relation(fields: [legalEntityId], references: [id], onDelete: Restrict)
+  stores        Store[]
+  documentableEntity DocumentableEntity?
+
+  @@unique([id, legalEntityId])
+  @@unique([legalEntityId, code])
+  @@index([legalEntityId, active, name, id])
+  @@map("service_stations")
+}
+
+model Store {
+  id            String   @id @default(uuid()) @db.Uuid
+  legalEntityId String   @db.Uuid
+  stationId     String?  @db.Uuid
+  name          String
+  address       String
+  province      String
+  locality      String
+  responsible   String
+  phone         String
+  email         String
+  active        Boolean  @default(true)
+  version       Int      @default(1)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  legalEntity   LegalEntity @relation(fields: [legalEntityId], references: [id], onDelete: Restrict)
+  station       ServiceStation? @relation(fields: [stationId, legalEntityId], references: [id, legalEntityId], onDelete: Restrict)
+  documentableEntity DocumentableEntity?
+
+  @@unique([id, legalEntityId])
+  @@index([legalEntityId, active, name, id])
+  @@index([stationId, legalEntityId])
+  @@map("stores")
+}
+
+model Vehicle {
+  id            String   @id @default(uuid()) @db.Uuid
+  legalEntityId String   @db.Uuid
+  plate         String   @unique
+  fileNumber    String
+  vehicleType   String
+  brand         String
+  model         String
+  year          Int
+  responsible   String
+  notes         String   @default("")
+  active        Boolean  @default(true)
+  version       Int      @default(1)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  legalEntity   LegalEntity @relation(fields: [legalEntityId], references: [id], onDelete: Restrict)
+  documentableEntity DocumentableEntity?
+
+  @@unique([id, legalEntityId])
+  @@unique([legalEntityId, fileNumber])
+  @@index([legalEntityId, active, plate, id])
+  @@map("vehicles")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  actorId      String?
+  action       String
+  resourceType String
+  resourceId   String
+  changes      Json
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  actor        User? @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([resourceType, resourceId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([createdAt, id])
+  @@map("audit_logs")
+}
+
+enum DocumentEntityKind {
+  LEGAL_ENTITY
+  STATION
+  STORE
+  VEHICLE
+}
+
+enum DocumentCriticality {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+// Exactly one concrete FK and matching kind are enforced by migration SQL.
+model DocumentableEntity {
+  id String @id @default(uuid()) @db.Uuid
+  kind DocumentEntityKind
+  legalEntityId String @db.Uuid
+  companyId String? @unique @db.Uuid
+  stationId String? @unique @db.Uuid
+  storeId String? @unique @db.Uuid
+  vehicleId String? @unique @db.Uuid
+  company LegalEntity @relation("DocumentScope", fields: [legalEntityId], references: [id], onDelete: Cascade)
+  companyEntity LegalEntity? @relation("DocumentCompany", fields: [companyId], references: [id], onDelete: Cascade)
+  station ServiceStation? @relation(fields: [stationId, legalEntityId], references: [id, legalEntityId], onDelete: Cascade)
+  store Store? @relation(fields: [storeId, legalEntityId], references: [id, legalEntityId], onDelete: Cascade)
+  vehicle Vehicle? @relation(fields: [vehicleId, legalEntityId], references: [id, legalEntityId], onDelete: Cascade)
+  requirements DocumentRequirement[]
+
+  @@index([legalEntityId, kind, id])
+  @@unique([stationId, legalEntityId])
+  @@unique([storeId, legalEntityId])
+  @@unique([vehicleId, legalEntityId])
+  @@map("documentable_entities")
+}
+
+model DocumentType {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique
+  active Boolean @default(true)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  revisions DocumentTypeRevision[]
+  requirements DocumentRequirement[]
+
+  @@index([active, code, id])
+  @@map("document_types")
+}
+
+// Revisions are append-only; assigning an obligation pins its configuration.
+model DocumentTypeRevision {
+  id String @id @default(uuid()) @db.Uuid
+  documentTypeId String @db.Uuid
+  number Int
+  name String
+  description String
+  category String
+  appliesTo DocumentEntityKind[]
+  required Boolean
+  criticality DocumentCriticality
+  requiresApproval Boolean
+  expires Boolean
+  warningDays Int
+  alertDays Int[]
+  fields Json
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  documentType DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Restrict)
+  requirements DocumentRequirement[]
+
+  @@unique([documentTypeId, number])
+  @@unique([id, documentTypeId])
+  @@map("document_type_revisions")
+}
+
+model DocumentRequirement {
+  id String @id @default(uuid()) @db.Uuid
+  entityId String @db.Uuid
+  documentTypeId String @db.Uuid
+  revisionId String @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  entity DocumentableEntity @relation(fields: [entityId], references: [id], onDelete: Restrict)
+  documentType DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Restrict)
+  revision DocumentTypeRevision @relation(fields: [revisionId, documentTypeId], references: [id, documentTypeId], onDelete: Restrict)
+
+  @@unique([entityId, documentTypeId])
+  @@index([documentTypeId, id])
+  @@map("document_requirements")
+}
