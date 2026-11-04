@@ -34,6 +34,19 @@ it("migra entidades existentes sin recrear IDs, datos ni versiones y completa su
     expect(registries.rows.map((row) => row.companyId ?? row.stationId ?? row.storeId ?? row.vehicleId).sort()).toEqual([company, station, store, vehicle].sort());
     expect((await client.query(`SELECT id, name, version FROM service_stations`)).rows).toEqual([{ id: station, name: "Estación previa", version: 4 }]);
     expect((await client.query(`SELECT id, version FROM legal_entities`)).rows).toEqual([{ id: company, version: 7 }]);
+    const typeId = randomUUID(); const revisionId = randomUUID(); const requirementId = randomUUID();
+    await client.query(`INSERT INTO document_types (id, code) VALUES ($1, 'PREVIO')`, [typeId]);
+    await client.query(`INSERT INTO document_type_revisions (id, "documentTypeId", number, name, description, category,
+      "appliesTo", required, criticality, "requiresApproval", expires, "warningDays", "alertDays", fields)
+      VALUES ($1, $2, 1, 'Previo', '', 'QA', ARRAY['STATION']::"DocumentEntityKind"[], true, 'HIGH', true, true, 30, ARRAY[30,0], '[]')`, [revisionId, typeId]);
+    await client.query(`INSERT INTO document_requirements (id, "entityId", "documentTypeId", "revisionId", version)
+      SELECT $1, id, $2, $3, 4 FROM documentable_entities WHERE "stationId" = $4`, [requirementId, typeId, revisionId, station]);
+    await client.query(await readFile("prisma/migrations/202611040005_document_presentations/migration.sql", "utf8"));
+    expect((await client.query(`SELECT id, "revisionId", version FROM document_requirements`)).rows)
+      .toEqual([{ id: requirementId, revisionId, version: 4 }]);
+    expect((await client.query(`SELECT count(*)::int AS total FROM document_presentations`)).rows[0].total).toBe(0);
+    expect((await client.query(`SELECT count(*)::int AS total FROM role_permissions rp JOIN roles r ON r.id = rp."roleId"
+      WHERE r.name = 'Visualizador' AND rp."permissionCode" = 'documents:present'`)).rows[0].total).toBe(0);
   } finally {
     await client.query("ROLLBACK");
     if (created) await client.query(`DROP SCHEMA "${schema}" CASCADE`);

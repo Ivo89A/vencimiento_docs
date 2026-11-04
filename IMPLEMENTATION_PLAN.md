@@ -235,7 +235,7 @@ Orden pedido tras la revisión: cerrar estos ajustes antes de avanzar a archivos
   confirmación de infraestructura aislada antes de crear clientes; no hubo conexiones externas.
 - [ ] Pruebas reales S3/ClamAV/EICAR bloqueadas: el usuario aún no dispone de esos servicios.
   `npm run files:check` falla correctamente por configuración ausente, sin contactar servicios.
-- [ ] Pendientes del hito: persistencia de adjuntos/presentaciones, carga autorizada, validación
+- [ ] Pendientes del hito: persistencia de adjuntos y envío de presentaciones, carga autorizada, validación
   real de PDF/imágenes, jobs/reconciliación, renovaciones y visor. No hay endpoint de carga activo.
 - No se instalaron servicios, no se contrataron cuentas y no se crearon archivos públicos.
 - Localhost restaurado y verificado por navegador: autenticación y navegación documental
@@ -256,3 +256,32 @@ Orden pedido tras la revisión: cerrar estos ajustes antes de avanzar a archivos
 - [x] Primera comprobación: typecheck, lint, 184 unitarias y build aprobados.
 - [ ] Regresión PostgreSQL/E2E y capturas responsive en ejecución sobre bases aisladas.
 - [ ] Revisión visual final y restauración de la vista local.
+
+## Continuación documental — presentaciones en borrador (2026-11-04)
+- [x] Inspección de estado, esquema y contratos existentes; no se rehízo el catálogo ni la interfaz.
+- [x] Migración 005 aditiva: presentaciones con revisión fijada, número por obligación, fechas
+  DATE, campos tipados, autor, idempotencia y control de versión. FK y triggers protegen historia.
+- [x] Servicios y API para crear, consultar, editar y cancelar borradores con permiso propio
+  `documents:present`, alcance, validación y auditoría transaccional. No permite aprobar/enviar.
+- [x] Pantallas conectadas desde las obligaciones; formulario por configuración asignada y
+  consulta sin escritura para visualizadores. Cancelación confirmada e historial conservado.
+- [x] No se informa cumplimiento: cada presentación se identifica como borrador sin archivo.
+  No hay cargas, descargas ni llamadas S3/ClamAV nuevas; infraestructura externa aún pendiente.
+- [x] Primera verificación: typecheck, lint y 195 unitarias aprobados.
+- [x] Verificación ampliada: build, typecheck, lint, 196 unitarias y 66 de integración aprobados;
+  las cinco migraciones se aplicaron a ambas bases QA. Audit productivo: 0 avisos.
+- [x] Migración 005 aplicada en la base local existente conservando IDs/versiones y 3 empresas,
+  4 estaciones y 7 registros. Cluster previo recuperado con respaldo físico, sin reinicializar
+  ni sustituir registros; diagnóstico de carpetas faltantes documentado en `docs/verification.md`.
+- [x] Verificación final: 196 unitarias, 66 de integración PostgreSQL y 14 E2E aprobados,
+  sin omisiones. Typecheck, lint, validación Prisma y build aprobados. Capturas de borrador,
+  cancelada y confirmación inspeccionadas en escritorio/móvil; foco y permisos comprobados.
+- [x] Capturas E2E ajustadas a `caret: initial`: la ocultación del cursor de Playwright
+  alteraba atributos antes de hidratar. Repetición final sin avisos de hidratación y con
+  aserción explícita; no se suprimieron advertencias en el producto.
+- [x] Vista local restaurada y verificada: login, navegación documental estable y API con
+  alcance. Usa `next dev --webpack` para evitar un bucle de recarga observado con Turbopack
+  en esta vista local; la suite QA con Turbopack sí pasó. No se cambió el script del proyecto
+  ni se afirma resuelta la causa del bucle. Sin nuevas obligaciones ni presentaciones demo.
+- Sigue pendiente completar el hito 2 (adjuntos, formato real, análisis/jobs/reconciliación,
+  envío, renovaciones definitivas y visor) antes de aprobación/vencimientos/alertas/reportes.

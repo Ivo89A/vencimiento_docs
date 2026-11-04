@@ -4,7 +4,7 @@ export const permissions = [
   "legal-entities:read", "legal-entities:write", "legal-entities:export",
   "stations:read", "stations:write", "stations:export", "stores:read", "stores:write",
   "vehicles:read", "vehicles:write", "audit:read",
-  "documents:read", "documents:configure", "documents:assign",
+  "documents:read", "documents:configure", "documents:assign", "documents:present",
 ] as const;
 export type PermissionCode = (typeof permissions)[number];
 

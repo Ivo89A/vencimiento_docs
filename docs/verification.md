@@ -161,3 +161,43 @@ El usuario eligió usar sus servicios existentes. Preparación: `docs/document-s
 - Pendiente: provisionar y probar infraestructura real; modelo de adjuntos/presentaciones,
   carga autorizada, validación real de formatos, jobs/reconciliación, visor y renovaciones.
   No hay endpoint de carga ni se considera completado el hito 2.
+
+## Presentaciones en borrador — continuación 2026-11-04
+- Migración 005 aditiva y servicios/API/pantallas para metadatos de presentación. Creación
+  idempotente, revisión fijada, fechas DATE, campos tipados, edición optimista y cancelación
+  irreversible con auditoría atómica. No adjunta archivos ni acredita cumplimiento.
+- Typecheck, lint, build y 196 unitarias aprobados. Auditoría productiva: 0 avisos. No se
+  instalaron dependencias ni se cambiaron versiones del stack.
+- Integración ampliada: 66 pruebas aprobadas en PostgreSQL 18.6, incluidas FK/triggers,
+  concurrencia, alcance, idempotencia, rollback y actualización sobre una obligación previa.
+- E2E documental ampliado: alta, edición, cancelación confirmada, consulta por visualizador,
+  rechazo de escritura/CSRF, foco en error y ausencia de overflow en escritorio/móvil.
+  Repetición final: 14 E2E aprobados, sin omisiones ni avisos de hidratación; 196 unitarias
+  y 66 de integración aprobadas. También validación Prisma, typecheck, lint y build.
+- Inspeccionadas capturas reales de borrador, cancelada y confirmación. Se conserva `DESIGN.md`;
+  no se agregaron botones de carga/aprobación simulados ni se cambió el layout existente.
+- Una repetición aprobó 14 E2E pero mostró un aviso de hidratación al capturar: el detalle
+  identifica atributos `style: caret-color: transparent` agregados por Playwright antes de la
+  hidratación. Se cambió la captura a `caret: initial`, igual que el helper visual existente,
+  y se agregó una aserción explícita de errores/hidratación al E2E documental. No se usó
+  `suppressHydrationWarning` ni se modificó el producto para ocultar el aviso.
+
+### Recuperación de la vista local anterior
+El cluster de ejemplo estaba detenido y no iniciaba por ausencia de directorios PostgreSQL
+(`pg_notify` y otros, incluidos subdirectorios de `pg_logical`). Se preservó una copia física
+completa estando detenido antes de reparar su estructura. Se comparó con un `initdb` aislado
+de la misma versión y solo se reconstruyeron nombres de directorio, sin copiar tablas, WAL,
+configuración ni archivos del cluster de referencia. PostgreSQL completó su recuperación normal.
+`pg_stat` se recreó vacío (estadísticas regenerables); no se ejecutó `pg_resetwal`, no se
+reinicializó la base original ni se borraron datos. Esa copia no equivale a una restauración
+productiva verificada.
+
+La migración 005 se aplicó luego en la base de ejemplo existente. Se compararon IDs/versiones
+de empresas/estaciones antes y después de migrar: sin cambios. Permanecen 3 empresas, 4
+estaciones, 7 registros documentables y 0 presentaciones; no se sembraron requisitos ficticios.
+Vista local restaurada en http://localhost:3000 y verificada con login, navegación documental
+estable y API autorizada, sin sembrar obligaciones/presentaciones. El arranque local con
+Turbopack mostró recompilaciones/recargas continuas y destrucción del contexto de navegador,
+aunque la suite aislada con Turbopack pasó. La vista local usa `next dev --webpack` como
+alternativa comprobada; no se cambió el script de desarrollo ni se afirma resuelta la causa
+de ese comportamiento específico del entorno local.

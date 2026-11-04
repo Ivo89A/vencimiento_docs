@@ -44,6 +44,7 @@ export default async function DocumentationPage({ searchParams }: { searchParams
         <div><dt className="text-xs text-slate-500">Prioridad</dt><dd>{criticalityLabels[item.revision.criticality]} · {item.revision.required ? "Obligatorio" : "Opcional"}</dd></div>
         <div><dt className="text-xs text-slate-500">Documentación</dt><dd><Badge>Pendiente de carga</Badge></dd></div>
       </dl>
+      <Button asChild variant="outline" className="mt-4"><Link href={`/documentacion/obligaciones/${item.id}`}>Ver presentaciones</Link></Button>
       {!item.documentType.active ? <p className="mt-3 text-xs text-amber-800">Tipo inactivo para nuevas asignaciones. La obligación se conserva.</p> : null}
     </li>)}</ul>
     {result.total === 0 ? <Empty className="surface"><EmptyHeader><FileCheck2 aria-hidden="true" size={30} className="text-muted-foreground" /><EmptyTitle>No hay obligaciones para mostrar</EmptyTitle><EmptyDescription>{query.q ? "Probá otra búsqueda para encontrar un requisito." : "Consultá los tipos documentales o accedé desde una estación para asignar requisitos. Sin evaluación de cumplimiento."}</EmptyDescription></EmptyHeader></Empty> : null}

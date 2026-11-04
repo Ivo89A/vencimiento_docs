@@ -22,6 +22,7 @@ model User {
   roles         UserRole[]
   access        UserLegalEntityAccess[]
   auditLogs     AuditLog[]
+  documentPresentations DocumentPresentation[]
 
   @@map("users")
 }
@@ -324,6 +325,7 @@ model DocumentTypeRevision {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   documentType DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Restrict)
   requirements DocumentRequirement[]
+  presentations DocumentPresentation[]
 
   @@unique([documentTypeId, number])
   @@unique([id, documentTypeId])
@@ -340,8 +342,43 @@ model DocumentRequirement {
   entity DocumentableEntity @relation(fields: [entityId], references: [id], onDelete: Restrict)
   documentType DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Restrict)
   revision DocumentTypeRevision @relation(fields: [revisionId, documentTypeId], references: [id, documentTypeId], onDelete: Restrict)
+  presentations DocumentPresentation[]
 
+  @@unique([id, documentTypeId])
   @@unique([entityId, documentTypeId])
   @@index([documentTypeId, id])
   @@map("document_requirements")
+}
+
+enum DocumentPresentationStatus {
+  DRAFT
+  CANCELLED
+}
+
+// Metadata only: a draft is not evidence, approval or an effective certificate.
+model DocumentPresentation {
+  id String @id @default(uuid()) @db.Uuid
+  requirementId String @db.Uuid
+  documentTypeId String @db.Uuid
+  revisionId String @db.Uuid
+  number Int
+  status DocumentPresentationStatus @default(DRAFT)
+  version Int @default(1)
+  issuedOn DateTime? @db.Date
+  expiresOn DateTime? @db.Date
+  values Json
+  notes String @default("")
+  createdById String
+  requestId String @db.Uuid
+  requestFingerprint String @db.VarChar(64)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  requirement DocumentRequirement @relation(fields: [requirementId, documentTypeId], references: [id, documentTypeId], onDelete: Restrict)
+  revision DocumentTypeRevision @relation(fields: [revisionId, documentTypeId], references: [id, documentTypeId], onDelete: Restrict)
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([requirementId, number])
+  @@unique([requirementId, createdById, requestId])
+  @@index([requirementId, createdAt, id])
+  @@map("document_presentations")
 }

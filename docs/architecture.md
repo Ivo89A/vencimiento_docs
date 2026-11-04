@@ -15,7 +15,7 @@ Razones sociales contienen estaciones, tiendas y rodados. Tienda y estación deb
 razón social: FK compuesta además de validación del servicio. Baja lógica no elimina historial.
 Desactivar una razón social con dependencias activas se rechaza; no se hace cascada silenciosa.
 
-## Motor documental (primer hito implementado; presentaciones y archivos pendientes)
+## Motor documental (catálogo y borradores implementados; archivos y ciclo efectivo pendientes)
 Registro `DocumentableEntity`, discriminado por tipo, con una FK concreta hacia su subtipo.
 El CHECK exige exactamente una referencia y un subtipo coincidente; las FK compuestas garantizan
 razón social para estaciones/tiendas/rodados. Un trigger registra altas de las cuatro entidades,
@@ -35,6 +35,12 @@ Los siguientes modelos y comportamientos siguen siendo diseño objetivo:
 `DocumentType` define configuración; `DocumentRequirement` es obligación de una entidad;
 `DocumentVersion` conserva cada presentación y sus decisiones de aprobación;
 `Attachment` apunta al objeto privado. La versión seleccionada debe pertenecer a su obligación.
+
+Implementado como primer paso aditivo: `DocumentPresentation` conserva metadatos en borrador,
+con número por obligación, revisión fijada y fechas DATE. Edición con control de versión y
+cancelación irreversible sin borrar contenido; un borrador no es `DocumentVersion` aprobado
+ni evidencia. Contrato, API y límites en `document-presentations.md`. La migración 005 protege
+identidad, revisión asignada, transiciones y conservación en SQL.
 
 Al renovar, crear nueva versión en transacción con control optimista o bloqueo de obligación.
 No mutar fechas de una versión aprobada silenciosamente. Una versión en revisión no aporta

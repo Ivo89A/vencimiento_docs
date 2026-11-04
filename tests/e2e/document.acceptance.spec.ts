@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { clearTestRateLimits } from "./support/isolated-database";
 
 test("documentación: configurar, asignar, revisar y conservar obligaciones con acceso autorizado", async ({ page, browser }, info) => {
+  test.setTimeout(120000);
   test.skip(!process.env.E2E_ADMIN_EMAIL, "Requiere la infraestructura aislada verify:postgres.");
   await clearTestRateLimits();
   const headers = { Origin: "http://localhost:3000" };
@@ -9,6 +10,11 @@ test("documentación: configurar, asignar, revisar y conservar obligaciones con 
   const name = `Certificado de bomberos ${info.project.name}`;
   const revisedName = `Habilitación de seguridad ${info.project.name}`;
   const failedRoutes: string[] = [];
+  const browserErrors: string[] = [];
+  page.on("pageerror", (error) => browserErrors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error" && /hydrat|didn't match/i.test(message.text())) browserErrors.push(message.text());
+  });
   page.on("response", (response) => {
     if (response.status() >= 500) failedRoutes.push(new URL(response.url()).pathname);
   });
@@ -81,7 +87,50 @@ test("documentación: configurar, asignar, revisar y conservar obligaciones con 
     await page.getByRole("link", { name: "Obligaciones", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Documentación", exact: true })).toBeVisible();
   }
+  // Metadata preparation is functional, but must never claim an uploaded/approved certificate.
+  await page.getByRole("link", { name: "Ver presentaciones", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Presentaciones de la obligación", exact: true })).toBeVisible();
+  const requirementId = new URL(page.url()).pathname.split("/").at(-1)!;
+  await expect(page.getByRole("heading", { name: "No hay presentaciones", exact: true })).toBeVisible();
+  await page.getByLabel("Fecha de emisión (opcional)", { exact: true }).fill("2026-11-04");
+  await page.getByLabel("Fecha de vencimiento (obligatoria)", { exact: true }).fill("2027-11-04");
+  await page.getByLabel("Número del certificado (opcional)", { exact: true }).fill("B-123-QA");
+  await page.getByLabel("Observaciones (opcional)", { exact: true }).fill("Borrador de prueba sin archivo");
+  await page.getByLabel("Fecha de vencimiento (obligatoria)", { exact: true }).fill("2025-11-04");
+  await page.getByRole("button", { name: "Guardar borrador", exact: true }).click();
+  await expect(page.getByText("El vencimiento no puede ser anterior a la emisión.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "Revisá las fechas" })).toBeFocused();
+  await page.getByLabel("Fecha de vencimiento (obligatoria)", { exact: true }).fill("2027-11-04");
+  await page.getByRole("button", { name: "Guardar borrador", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Presentación 1", exact: true })).toBeVisible();
+  await expect(page.getByText("Borrador sin archivo", { exact: true })).toBeVisible();
+  const presentationId = new URL(page.url()).pathname.split("/").at(-1)!;
+  await page.getByLabel("Observaciones (opcional)", { exact: true }).fill("Datos corregidos sin aprobación");
+  await page.getByRole("button", { name: "Guardar cambios del borrador", exact: true }).click();
+  await expect.poll(async () => (await (await page.request.get(`/api/document-presentations/${presentationId}`)).json()).data.version).toBe(2);
+  await expect(page.getByRole("button", { name: "Guardar cambios del borrador", exact: true })).toBeEnabled();
+  // Explicit reload verifies persistence and gives the optimistic version from the committed row.
+  await page.reload();
+  await expect(page.getByLabel("Observaciones (opcional)", { exact: true })).toHaveValue("Datos corregidos sin aprobación");
+  await page.screenshot({ path: info.outputPath("presentacion-borrador.png"), fullPage: true, caret: "initial", style: "nextjs-portal { visibility: hidden; }" });
+  expect(await page.locator("body").evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
+  expect((await page.request.patch(`/api/document-presentations/${presentationId}`, { headers: { Origin: "https://untrusted.invalid" }, data: { action: "CANCEL", version: 2 } })).status()).toBe(403);
+  expect((await page.request.post(`/api/document-requirements/${requirementId}/presentations`, { headers: { Origin: "https://untrusted.invalid" }, data: {} })).status()).toBe(403);
+  await page.getByRole("button", { name: "Cancelar borrador", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Cancelar el borrador definitivamente", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Conservar borrador", exact: true })).toBeFocused();
+  await page.screenshot({ path: info.outputPath("confirmar-cancelacion.png"), caret: "initial", style: "nextjs-portal { visibility: hidden; }" });
+  await page.getByRole("button", { name: "Conservar borrador", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Cancelar borrador", exact: true })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Confirmar cancelación", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Cancelar borrador", exact: true }).click();
+  await page.getByRole("button", { name: "Confirmar cancelación", exact: true }).click();
+  await expect(page.getByText("Cancelada", { exact: true })).toBeVisible();
+  await expect(page.getByText("Datos corregidos sin aprobación", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Guardar cambios del borrador", exact: true })).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath("presentacion-cancelada.png"), fullPage: true, caret: "initial", style: "nextjs-portal { visibility: hidden; }" });
   expect(failedRoutes).toEqual([]);
+  expect(browserErrors).toEqual([]);
 
   const viewerContext = await browser.newContext({ baseURL: "http://localhost:3000", viewport: info.project.use.viewport, isMobile: info.project.use.isMobile, hasTouch: info.project.use.hasTouch });
   try {
@@ -96,6 +145,13 @@ test("documentación: configurar, asignar, revisar y conservar obligaciones con 
     await expect(viewer.getByRole("link", { name: "Asignar requisito", exact: true })).toHaveCount(0);
     expect((await viewer.request.post("/api/document-requirements", { headers, data: { entityId, documentTypeId: type.id, typeVersion: 2 } })).status()).toBe(403);
     expect((await viewer.request.patch(`/api/document-types/${type.id}`, { headers, data: { active: false, version: 2 } })).status()).toBe(403);
+    await viewer.getByRole("link", { name: "Ver presentaciones", exact: true }).click();
+    await expect(viewer.getByRole("link", { name: "Presentación 1", exact: true })).toBeVisible();
+    await expect(viewer.getByRole("button", { name: "Guardar borrador", exact: true })).toHaveCount(0);
+    await viewer.getByRole("link", { name: "Presentación 1", exact: true }).click();
+    await expect(viewer.getByText("Cancelada", { exact: true })).toBeVisible();
+    expect((await viewer.request.post(`/api/document-requirements/${requirementId}/presentations`, { headers, data: {} })).status()).toBe(403);
+    expect((await viewer.request.patch(`/api/document-presentations/${presentationId}`, { headers, data: { action: "CANCEL", version: 3 } })).status()).toBe(403);
     await viewer.goto("/documentacion/tipos/nuevo");
     await expect(viewer.getByRole("heading", { name: "No tenés permiso para acceder", exact: true })).toBeVisible();
   } finally { await viewerContext.close(); }

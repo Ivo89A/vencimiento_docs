@@ -54,6 +54,23 @@ Las obligaciones legales de ejemplo no constituyen asesoramiento ni un catálogo
   Pruebas de protocolo son fixtures, no infraestructura real; seguir bloqueos/evidencia del plan.
 - Última verificación global de esta base: 184 unitarias, 53 de integración y 12 E2E aprobados;
   instalación limpia, typecheck, lint y build aprobados. Audit productivo: 0 avisos. Hito 2
-  sigue parcial: no hay infraestructura externa ni endpoints de carga/presentaciones/visor.
+  sigue parcial: no hay infraestructura externa ni endpoints de carga, envío a revisión o visor.
+
+## Continuación 2026-11-04
+- Presentaciones de metadatos implementadas: `docs/document-presentations.md` y módulos
+  `document-presentation.*` en el dominio. Migración 005 nueva, sin alterar 004.
+- Rutas reales desde obligaciones para preparar/editar/cancelar borradores. Permiso
+  `documents:present` exclusivo del Administrador inicialmente; servicio con alcance.
+- Un borrador NO es evidencia ni certificado aprobado. Adjuntos, envío, análisis, visor y
+  todo el ciclo posterior siguen pendientes. No convertir el dato de vencimiento en cumplimiento.
+- Verificación final: 196 unitarias, 66 de integración y 14 E2E aprobados; validación Prisma,
+  typecheck, lint y build aprobados. Capturas reales revisadas. El helper de screenshots usa
+  `caret: initial` para no alterar atributos antes de hidratar; aserción explícita en E2E.
+- Vista local recuperada en http://localhost:3000 con los mismos registros. El cluster previo
+  requería reconstruir carpetas internas ausentes: respaldo físico previo, sin reinicializar
+  ni copiar tablas/WAL de otra base; detalles en `docs/verification.md`. Migración 005 aplicada.
+- El proceso local actual usa `next dev --webpack --hostname 127.0.0.1 --port 3000` y el
+  entorno privado original: Turbopack entraba en recarga continua solo en esa vista. No se
+  cambió `npm run dev`; QA con Turbopack pasó. Pausar este proceso antes de build/E2E.
 
 No hay credenciales de demostración en producción. No incluir datos ficticios sin seed opt-in.

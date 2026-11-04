@@ -2,7 +2,7 @@
 
 Sistema para centralizar documentación y vencimientos de un grupo de estaciones de servicio en Argentina.
 
-**En desarrollo incremental. No está listo para producción ni implementa aún el motor documental.**
+**En desarrollo incremental. No está listo para producción; el circuito documental sigue incompleto.**
 El estado exacto y las pruebas están en [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 ## Incluido en la base inicial
@@ -18,6 +18,8 @@ El estado exacto y las pruebas están en [IMPLEMENTATION_PLAN.md](IMPLEMENTATION
   vigente en `IMPLEMENTATION_PLAN.md`; no incluye todavía archivos ni vencimientos.
 - Base de infraestructura documental: adaptador S3 privado, cliente ClamAV y comando
   `npm run files:check`. Aún no habilita cargas: faltan servicios reales y el flujo de adjuntos.
+- Presentaciones en borrador: fechas, campos configurados, edición y cancelación con historial,
+  permisos y control de concurrencia. No incluyen archivo ni acreditan cumplimiento.
 - Estaciones: API y pantallas de alta, detalle, edición, baja lógica y reactivación, estado
   operativo independiente, filtros, selección, CSV, historial y asociación empresarial segura.
 
@@ -73,6 +75,7 @@ Usar `db:migrate` solo en desarrollo con la base sombra correspondiente. En prod
 - [Arquitectura y seguridad](docs/architecture.md)
 - [Modelo de datos inicial](docs/database.md)
 - [Estaciones: reglas y alcance](docs/stations.md)
+- [Presentaciones documentales: alcance y límites](docs/document-presentations.md)
 - [Autenticación y permisos](docs/authentication.md)
 - [Almacenamiento y notificaciones](docs/infrastructure.md)
 - [Pruebas](docs/testing.md)

@@ -103,4 +103,16 @@ Para probar servicios reales: `npm run files:check -- --network --eicar`, única
 configuración privada e indicador de infraestructura aislada. Ver `document-storage-setup.md`.
 Sin infraestructura el comando debe fallar antes de contactar servicios, no aprobar ni simular.
 
+## Presentaciones en borrador
+- Unitarias: fechas civiles sin desplazamiento horario, campos según revisión asignada,
+  vencimiento requerido/no permitido y rechazo de autor/revisión/estado/S3 enviados por cliente.
+- Integración: creación y auditoría atómicas, idempotencia, alcance antes de conteo, números y
+  versiones concurrentes, configuración histórica, cancelación y restricciones SQL de conservación.
+- La prueba de migración también aplica 005 sobre una obligación previa y verifica que conserve
+  ID, revisión y versión, sin generar presentaciones ficticias ni dar escritura al Visualizador.
+- E2E documental ampliado en escritorio/móvil: preparar, editar, confirmar/cancelar, consultar
+  como visualizador, rechazar escrituras y origen no autorizado. Capturas propias de borrador/cancelada.
+- Las filas históricas de esa suite se conservan en la base QA desechable; no desactivar triggers
+  ni borrar evidencia para limpiar fixtures. El harness elimina el entorno, no registros del cliente.
+
 Resultados efectivamente ejecutados: `IMPLEMENTATION_PLAN.md`.
